@@ -16,8 +16,8 @@
 		sort: (row: ModelRow) => SortValue;
 	};
 
-	const rowHeight = 44;
-	const overscan = 32;
+	const rowHeight = 52;
+	const overscan = 60;
 	const defaultProviderIds = ['opencode', 'openai', 'google', 'anthropic', 'openrouter'];
 	const gridTemplate =
 		'180px 260px 150px 150px 300px 105px 105px 112px 112px 140px 150px 170px 170px 175px 170px 180px 140px 130px 130px 165px 130px 115px 130px 140px 140px';
@@ -213,7 +213,8 @@
 		return {
 			start,
 			end,
-			height: sortedRows.length * rowHeight,
+			topSpacer: start * rowHeight,
+			bottomSpacer: Math.max(0, (sortedRows.length - end) * rowHeight),
 			rows: sortedRows.slice(start, end)
 		};
 	});
@@ -517,13 +518,13 @@
 			{/each}
 		</div>
 
-		<div class="virtual-body" style:height={`${virtual.height}px`}>
-			{#each virtual.rows as row, index (`${row.providerId}:${row.modelId}`)}
+		<div class="virtual-body">
+			<div class="virtual-spacer" style:height={`${virtual.topSpacer}px`}></div>
+			{#each virtual.rows as row (`${row.providerId}:${row.modelId}`)}
 				<div
 					class="model-grid model-row"
 					class:is-deprecated={row.status === 'deprecated'}
 					style:grid-template-columns={gridTemplate}
-					style:transform={`translateY(${(virtual.start + index) * rowHeight}px)`}
 					style:height={`${rowHeight}px`}
 					role="row"
 				>
@@ -574,6 +575,7 @@
 					<div class="cell mono" role="cell">{row.last_updated}</div>
 				</div>
 			{/each}
+			<div class="virtual-spacer" style:height={`${virtual.bottomSpacer}px`}></div>
 		</div>
 	</section>
 </div>
