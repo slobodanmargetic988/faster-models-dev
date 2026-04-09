@@ -1,0 +1,2 @@
+- use vite plus for installing packages and running commands in this project. vpr for running a command, vp i for installing, vpx for executing scripts.
+- after making a change run the check/format/lint commands to ensure correctness. vpr check, vpr format, vpr lint.
