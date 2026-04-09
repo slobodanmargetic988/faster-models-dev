@@ -39,5 +39,8 @@
 		"vite": "^8.0.7",
 		"vite-plus": "^0.1.16"
 	},
-	"packageManager": "pnpm@10.33.0"
+	"packageManager": "pnpm@10.33.0",
+	"dependencies": {
+		"runed": "^0.37.1"
+	}
 }
