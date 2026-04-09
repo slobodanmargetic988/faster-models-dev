@@ -20,27 +20,19 @@
 	const overscan = 60;
 	const defaultProviderIds = ['opencode', 'openai', 'google', 'anthropic', 'openrouter'];
 	const gridTemplate =
-		'180px 260px 150px 150px 300px 105px 105px 112px 112px 140px 150px 170px 170px 175px 170px 180px 140px 130px 130px 165px 130px 115px 130px 140px 140px';
+		'180px 260px 150px 300px 140px 140px 140px 150px 170px 175px 170px 130px 150px 105px 105px 112px 112px 170px 180px 130px 165px 130px 115px 130px 140px';
 
 	const columns: Column[] = [
 		{ id: 'provider', label: 'Provider', type: 'text', sort: (row) => row.providerName },
 		{ id: 'model', label: 'Model', type: 'text', sort: (row) => row.name },
-		{ id: 'family', label: 'Family', type: 'text', sort: (row) => row.family },
 		{ id: 'provider-id', label: 'Provider ID', type: 'text', sort: (row) => row.providerId },
 		{ id: 'model-id', label: 'Model ID', type: 'text', sort: (row) => row.modelId },
-		{ id: 'tool-call', label: 'Tool Call', type: 'boolean', sort: (row) => row.tool_call },
-		{ id: 'reasoning', label: 'Reasoning', type: 'boolean', sort: (row) => row.reasoning },
+		{ id: 'release-date', label: 'Release Date', type: 'text', sort: (row) => row.release_date },
 		{
-			id: 'input',
-			label: 'Input',
-			type: 'modalities',
-			sort: (row) => row.modalities.input.length
-		},
-		{
-			id: 'output',
-			label: 'Output',
-			type: 'modalities',
-			sort: (row) => row.modalities.output.length
+			id: 'context-limit',
+			label: 'Context Limit',
+			type: 'number',
+			sort: (row) => row.limit.context
 		},
 		{
 			id: 'input-cost',
@@ -57,13 +49,6 @@
 			sort: (row) => row.cost?.output
 		},
 		{
-			id: 'reasoning-cost',
-			label: 'Reasoning Cost',
-			description: 'per 1M tokens',
-			type: 'number',
-			sort: (row) => row.cost?.reasoning
-		},
-		{
 			id: 'cache-read-cost',
 			label: 'Cache Read Cost',
 			description: 'per 1M tokens',
@@ -76,6 +61,29 @@
 			description: 'per 1M tokens',
 			type: 'number',
 			sort: (row) => row.cost?.cache_write
+		},
+		{
+			id: 'reasoning-cost',
+			label: 'Reasoning Cost',
+			description: 'per 1M tokens',
+			type: 'number',
+			sort: (row) => row.cost?.reasoning
+		},
+		{ id: 'output-limit', label: 'Output Limit', type: 'number', sort: (row) => row.limit.output },
+		{ id: 'family', label: 'Family', type: 'text', sort: (row) => row.family },
+		{ id: 'tool-call', label: 'Tool Call', type: 'boolean', sort: (row) => row.tool_call },
+		{ id: 'reasoning', label: 'Reasoning', type: 'boolean', sort: (row) => row.reasoning },
+		{
+			id: 'input',
+			label: 'Input',
+			type: 'modalities',
+			sort: (row) => row.modalities.input.length
+		},
+		{
+			id: 'output',
+			label: 'Output',
+			type: 'modalities',
+			sort: (row) => row.modalities.output.length
 		},
 		{
 			id: 'audio-input-cost',
@@ -91,14 +99,7 @@
 			type: 'number',
 			sort: (row) => row.cost?.output_audio
 		},
-		{
-			id: 'context-limit',
-			label: 'Context Limit',
-			type: 'number',
-			sort: (row) => row.limit.context
-		},
 		{ id: 'input-limit', label: 'Input Limit', type: 'number', sort: (row) => row.limit.input },
-		{ id: 'output-limit', label: 'Output Limit', type: 'number', sort: (row) => row.limit.output },
 		{
 			id: 'structured-output',
 			label: 'Structured Output',
@@ -108,7 +109,6 @@
 		{ id: 'temperature', label: 'Temperature', type: 'boolean', sort: (row) => row.temperature },
 		{ id: 'weights', label: 'Weights', type: 'boolean', sort: (row) => row.open_weights },
 		{ id: 'knowledge', label: 'Knowledge', type: 'text', sort: (row) => row.knowledge },
-		{ id: 'release-date', label: 'Release Date', type: 'text', sort: (row) => row.release_date },
 		{ id: 'last-updated', label: 'Last Updated', type: 'text', sort: (row) => row.last_updated }
 	];
 
@@ -376,8 +376,8 @@
 		}
 	}
 
-	async function copyModelId(modelId: string) {
-		await navigator.clipboard.writeText(modelId);
+	async function copyText(text: string) {
+		await navigator.clipboard.writeText(text);
 	}
 </script>
 
@@ -533,18 +533,35 @@
 						<span>{row.providerName}</span>
 					</div>
 					<div class="cell strong" role="cell">{row.name}</div>
-					<div class="cell mono" role="cell">{row.family ?? '-'}</div>
-					<div class="cell mono muted" role="cell">{row.providerId}</div>
-					<div class="cell model-id-cell mono" role="cell">
+					<div class="cell id-cell mono muted" role="cell">
+						<span>{row.providerId}</span>
+						<button
+							class="copy-button"
+							onclick={() => copyText(row.providerId)}
+							aria-label="Copy provider id"
+						>
+							Copy
+						</button>
+					</div>
+					<div class="cell strong id-cell mono" role="cell">
 						<span>{row.modelId}</span>
 						<button
 							class="copy-button"
-							onclick={() => copyModelId(row.modelId)}
+							onclick={() => copyText(row.modelId)}
 							aria-label="Copy model id"
 						>
 							Copy
 						</button>
 					</div>
+					<div class="cell mono" role="cell">{row.release_date}</div>
+					<div class="cell strong mono" role="cell">{formatNumber(row.limit.context)}</div>
+					<div class="cell strong mono" role="cell">{formatCost(row.cost?.input)}</div>
+					<div class="cell strong mono" role="cell">{formatCost(row.cost?.output)}</div>
+					<div class="cell mono" role="cell">{formatCost(row.cost?.cache_read)}</div>
+					<div class="cell mono" role="cell">{formatCost(row.cost?.cache_write)}</div>
+					<div class="cell mono" role="cell">{formatCost(row.cost?.reasoning)}</div>
+					<div class="cell strong mono" role="cell">{formatNumber(row.limit.output)}</div>
+					<div class="cell mono" role="cell">{row.family ?? '-'}</div>
 					<div class="cell" role="cell">{row.tool_call ? 'Yes' : 'No'}</div>
 					<div class="cell" role="cell">{row.reasoning ? 'Yes' : 'No'}</div>
 					<div class="cell modalities" role="cell">
@@ -557,21 +574,13 @@
 							<span class="modality" title={modality}>{modality.slice(0, 1).toUpperCase()}</span>
 						{/each}
 					</div>
-					<div class="cell strong mono" role="cell">{formatCost(row.cost?.input)}</div>
-					<div class="cell strong mono" role="cell">{formatCost(row.cost?.output)}</div>
-					<div class="cell mono" role="cell">{formatCost(row.cost?.reasoning)}</div>
-					<div class="cell mono" role="cell">{formatCost(row.cost?.cache_read)}</div>
-					<div class="cell mono" role="cell">{formatCost(row.cost?.cache_write)}</div>
 					<div class="cell mono" role="cell">{formatCost(row.cost?.input_audio)}</div>
 					<div class="cell mono" role="cell">{formatCost(row.cost?.output_audio)}</div>
-					<div class="cell strong mono" role="cell">{formatNumber(row.limit.context)}</div>
 					<div class="cell mono" role="cell">{formatNumber(row.limit.input)}</div>
-					<div class="cell strong mono" role="cell">{formatNumber(row.limit.output)}</div>
 					<div class="cell" role="cell">{formatOptionalBoolean(row.structured_output)}</div>
 					<div class="cell" role="cell">{formatOptionalBoolean(row.temperature)}</div>
 					<div class="cell" role="cell">{row.open_weights ? 'Open' : 'Closed'}</div>
 					<div class="cell mono" role="cell">{row.knowledge?.slice(0, 7) ?? '-'}</div>
-					<div class="cell mono" role="cell">{row.release_date}</div>
 					<div class="cell mono" role="cell">{row.last_updated}</div>
 				</div>
 			{/each}
