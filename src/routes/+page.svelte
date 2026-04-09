@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
+	import GitFork from 'lucide-svelte/icons/git-fork';
 	import { createSearchParamsSchema, useSearchParams } from 'runed/kit';
 	import type { ModelRow } from '$lib/models/types';
 	import type { PageData } from './$types';
@@ -350,13 +351,22 @@
 
 		<div class="header-right">
 			<a
-				class="github-link"
+				class="icon-link"
+				href="https://github.com/davis7dotsh/faster-models-dev"
+				target="_blank"
+				rel="noreferrer"
+				aria-label="Faster Models.dev on GitHub"
+			>
+				<GitFork size={20} strokeWidth={2} />
+			</a>
+			<a
+				class="source-link"
 				href="https://github.com/anomalyco/models.dev"
 				target="_blank"
 				rel="noreferrer"
-				aria-label="Models.dev source on GitHub"
+				aria-label="Models.dev data source"
 			>
-				GitHub
+				Source
 			</a>
 			<label class="search-container">
 				<span class="sr-only">Search models</span>
