@@ -1,10 +1,8 @@
+import { query } from '$app/server';
 import { flattenModelsDev } from '$lib/models/flatten';
 import type { ModelsDevApi } from '$lib/models/types';
-import type { PageLoad } from './$types';
 
-export const ssr = false;
-
-export const load = (async ({ fetch }) => {
+export const getModelRows = query(async () => {
 	const response = await fetch('https://models.dev/api.json');
 
 	if (!response.ok) {
@@ -12,10 +10,6 @@ export const load = (async ({ fetch }) => {
 	}
 
 	const api = (await response.json()) as ModelsDevApi;
-	const rows = flattenModelsDev(api);
 
-	return {
-		rows,
-		loadedAt: response.headers.get('date')
-	};
-}) satisfies PageLoad;
+	return flattenModelsDev(api);
+});

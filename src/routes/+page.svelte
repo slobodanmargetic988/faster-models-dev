@@ -3,9 +3,9 @@
 	import GitFork from 'lucide-svelte/icons/git-fork';
 	import { createSearchParamsSchema, useSearchParams } from 'runed/kit';
 	import type { ModelRow } from '$lib/models/types';
-	import type { PageData } from './$types';
+	import { getModelRows } from './models.remote';
 
-	let { data }: { data: PageData } = $props();
+	const allRows = await getModelRows();
 
 	type SortValue = string | number | boolean | undefined;
 	type Column = {
@@ -17,10 +17,9 @@
 	};
 
 	const rowHeight = 52;
-	const overscan = 60;
+	const overscan = 16;
 	const defaultProviderIds = ['opencode', 'openai', 'google', 'anthropic', 'openrouter'];
-	const gridTemplate =
-		'180px 260px 150px 300px 140px 140px 140px 150px 170px 175px 170px 130px 150px 105px 105px 112px 112px 170px 180px 130px 165px 130px 115px 130px 140px';
+	const collator = new Intl.Collator(undefined, { numeric: true });
 
 	const columns: Column[] = [
 		{ id: 'provider', label: 'Provider', type: 'text', sort: (row) => row.providerName },
@@ -129,7 +128,6 @@
 	let searchInput: HTMLInputElement;
 	let providerSearchInput = $state<HTMLInputElement>();
 
-	const allRows = $derived(data.rows);
 	const query = $derived(urlState.search);
 	const providerParam = $derived(urlState.provider);
 	const sortColumnId = $derived(urlState.sort || 'provider');
@@ -155,6 +153,9 @@
 		return Object.values(providers).sort((a, b) => a.name.localeCompare(b.name));
 	});
 
+	const providerById = $derived(
+		new Map(providerOptions.map((provider) => [provider.id, provider] as const))
+	);
 	const providerSearchTerms = $derived(parseQuery(providerSearch).flat());
 	const availableProviderOptions = $derived.by(() =>
 		providerOptions.filter(
@@ -199,7 +200,7 @@
 				return ((a as number) - (b as number)) * multiplier;
 			}
 
-			return String(a).localeCompare(String(b), undefined, { numeric: true }) * multiplier;
+			return collator.compare(String(a), String(b)) * multiplier;
 		});
 
 		return sorted;
@@ -220,7 +221,7 @@
 	});
 
 	const providerCount = $derived(new Set(providerFilteredRows.map((row) => row.providerId)).size);
-	const allProviderCount = $derived(new Set(allRows.map((row) => row.providerId)).size);
+	const allProviderCount = $derived(providerOptions.length);
 
 	function parseQuery(value: string) {
 		return value
@@ -228,18 +229,6 @@
 			.split(',')
 			.map((clause) => clause.trim().split(/\s+/).filter(Boolean))
 			.filter((clause) => clause.length > 0);
-	}
-
-	function formatCost(value: number | undefined) {
-		return value === undefined ? '-' : `$${value.toFixed(2)}`;
-	}
-
-	function formatNumber(value: number | undefined) {
-		return value === undefined ? '-' : value.toLocaleString();
-	}
-
-	function formatOptionalBoolean(value: boolean | undefined) {
-		return value === undefined ? '-' : value ? 'Yes' : 'No';
 	}
 
 	function setUrlProviders(providerIds: string[]) {
@@ -440,9 +429,8 @@
 			<button class="provider-chip" onclick={setFavoriteProviders}>my favorites</button>
 		{:else}
 			{#each selectedProviderIds as providerId (providerId)}
-				{@const provider = providerOptions.find((option) => option.id === providerId)}
 				<button class="provider-chip active" onclick={() => removeProvider(providerId)}>
-					{provider?.name ?? providerId} ×
+					{providerById.get(providerId)?.name ?? providerId} ×
 				</button>
 			{/each}
 			<button class="provider-chip" onclick={setFavoriteProviders}>my favorites</button>
@@ -502,7 +490,7 @@
 		onscroll={(event) => (scrollTop = event.currentTarget.scrollTop)}
 		aria-label="AI models"
 	>
-		<div class="model-grid header-row" style:grid-template-columns={gridTemplate} role="row">
+		<div class="model-grid header-row" role="row">
 			{#each columns as column (column.id)}
 				<button class="header-cell" onclick={() => sortBy(column)} role="columnheader">
 					<span class="header-label">
@@ -524,8 +512,6 @@
 				<div
 					class="model-grid model-row"
 					class:is-deprecated={row.status === 'deprecated'}
-					style:grid-template-columns={gridTemplate}
-					style:height={`${rowHeight}px`}
 					role="row"
 				>
 					<div class="cell strong provider-cell" role="cell">
@@ -554,33 +540,33 @@
 						</button>
 					</div>
 					<div class="cell mono" role="cell">{row.release_date}</div>
-					<div class="cell strong mono" role="cell">{formatNumber(row.limit.context)}</div>
-					<div class="cell strong mono" role="cell">{formatCost(row.cost?.input)}</div>
-					<div class="cell strong mono" role="cell">{formatCost(row.cost?.output)}</div>
-					<div class="cell mono" role="cell">{formatCost(row.cost?.cache_read)}</div>
-					<div class="cell mono" role="cell">{formatCost(row.cost?.cache_write)}</div>
-					<div class="cell mono" role="cell">{formatCost(row.cost?.reasoning)}</div>
-					<div class="cell strong mono" role="cell">{formatNumber(row.limit.output)}</div>
-					<div class="cell mono" role="cell">{row.family ?? '-'}</div>
-					<div class="cell" role="cell">{row.tool_call ? 'Yes' : 'No'}</div>
-					<div class="cell" role="cell">{row.reasoning ? 'Yes' : 'No'}</div>
+					<div class="cell strong mono" role="cell">{row.contextLimitDisplay}</div>
+					<div class="cell strong mono" role="cell">{row.inputCostDisplay}</div>
+					<div class="cell strong mono" role="cell">{row.outputCostDisplay}</div>
+					<div class="cell mono" role="cell">{row.cacheReadCostDisplay}</div>
+					<div class="cell mono" role="cell">{row.cacheWriteCostDisplay}</div>
+					<div class="cell mono" role="cell">{row.reasoningCostDisplay}</div>
+					<div class="cell strong mono" role="cell">{row.outputLimitDisplay}</div>
+					<div class="cell mono" role="cell">{row.familyDisplay}</div>
+					<div class="cell" role="cell">{row.toolCallDisplay}</div>
+					<div class="cell" role="cell">{row.reasoningDisplay}</div>
 					<div class="cell modalities" role="cell">
-						{#each row.modalities.input as modality (modality)}
-							<span class="modality" title={modality}>{modality.slice(0, 1).toUpperCase()}</span>
+						{#each row.inputModalitiesDisplay as modality (modality.id)}
+							<span class="modality" title={modality.id}>{modality.label}</span>
 						{/each}
 					</div>
 					<div class="cell modalities" role="cell">
-						{#each row.modalities.output as modality (modality)}
-							<span class="modality" title={modality}>{modality.slice(0, 1).toUpperCase()}</span>
+						{#each row.outputModalitiesDisplay as modality (modality.id)}
+							<span class="modality" title={modality.id}>{modality.label}</span>
 						{/each}
 					</div>
-					<div class="cell mono" role="cell">{formatCost(row.cost?.input_audio)}</div>
-					<div class="cell mono" role="cell">{formatCost(row.cost?.output_audio)}</div>
-					<div class="cell mono" role="cell">{formatNumber(row.limit.input)}</div>
-					<div class="cell" role="cell">{formatOptionalBoolean(row.structured_output)}</div>
-					<div class="cell" role="cell">{formatOptionalBoolean(row.temperature)}</div>
-					<div class="cell" role="cell">{row.open_weights ? 'Open' : 'Closed'}</div>
-					<div class="cell mono" role="cell">{row.knowledge?.slice(0, 7) ?? '-'}</div>
+					<div class="cell mono" role="cell">{row.inputAudioCostDisplay}</div>
+					<div class="cell mono" role="cell">{row.outputAudioCostDisplay}</div>
+					<div class="cell mono" role="cell">{row.inputLimitDisplay}</div>
+					<div class="cell" role="cell">{row.structuredOutputDisplay}</div>
+					<div class="cell" role="cell">{row.temperatureDisplay}</div>
+					<div class="cell" role="cell">{row.openWeightsDisplay}</div>
+					<div class="cell mono" role="cell">{row.knowledgeDisplay}</div>
 					<div class="cell mono" role="cell">{row.last_updated}</div>
 				</div>
 			{/each}

@@ -49,6 +49,11 @@ export type ProviderInfo = {
 
 export type ModelsDevApi = Record<string, ProviderInfo>;
 
+export type ModalityDisplay = {
+	id: Modality;
+	label: string;
+};
+
 export type ModelRow = ModelInfo & {
 	providerId: string;
 	providerName: string;
@@ -57,4 +62,23 @@ export type ModelRow = ModelInfo & {
 	providerApi?: string;
 	modelId: string;
 	searchText: string;
+	familyDisplay: string;
+	contextLimitDisplay: string;
+	outputLimitDisplay: string;
+	inputLimitDisplay: string;
+	inputCostDisplay: string;
+	outputCostDisplay: string;
+	cacheReadCostDisplay: string;
+	cacheWriteCostDisplay: string;
+	reasoningCostDisplay: string;
+	inputAudioCostDisplay: string;
+	outputAudioCostDisplay: string;
+	toolCallDisplay: string;
+	reasoningDisplay: string;
+	structuredOutputDisplay: string;
+	temperatureDisplay: string;
+	openWeightsDisplay: string;
+	knowledgeDisplay: string;
+	inputModalitiesDisplay: ModalityDisplay[];
+	outputModalitiesDisplay: ModalityDisplay[];
 };

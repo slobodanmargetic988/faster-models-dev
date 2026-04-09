@@ -411,6 +411,7 @@ a {
 
 .model-grid {
 	display: grid;
+	grid-template-columns: 180px 260px 150px 300px 140px 140px 140px 150px 170px 175px 170px 130px 150px 105px 105px 112px 112px 170px 180px 130px 165px 130px 115px 130px 140px;
 	min-width: max-content;
 }
 
@@ -419,7 +420,6 @@ a {
 	top: 0;
 	z-index: 20;
 	background: var(--color-alpha-background);
-	backdrop-filter: blur(10px);
 }
 
 .header-cell {
@@ -478,6 +478,7 @@ a {
 }
 
 .model-row {
+	height: 52px;
 	align-items: stretch;
 	background: var(--color-background);
 	contain: layout style;
