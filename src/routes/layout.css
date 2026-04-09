@@ -355,7 +355,8 @@ a {
 }
 
 .provider-option:hover,
-.provider-option:focus-visible {
+.provider-option:focus-visible,
+.provider-option.is-highlighted {
 	background: var(--color-brand);
 	color: var(--color-text-invert);
 	outline: none;

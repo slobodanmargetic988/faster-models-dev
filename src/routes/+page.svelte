@@ -120,9 +120,9 @@
 	});
 	const urlState = useSearchParams(urlSchema, { pushHistory: false, noScroll: true });
 
-	let initializedDefaultProviderUrl = $state(false);
 	let providerPickerOpen = $state(false);
 	let providerSearch = $state('');
+	let providerHighlightedIndex = $state(0);
 	let scrollTop = $state(0);
 	let viewportHeight = $state(720);
 	let tableViewport: HTMLElement;
@@ -134,9 +134,7 @@
 	const providerParam = $derived(urlState.provider);
 	const sortColumnId = $derived(urlState.sort || 'provider');
 	const sortDirection = $derived(urlState.order === 'desc' ? 'desc' : 'asc');
-	const providerFilterMode = $derived<'selected' | 'all'>(
-		providerParam === 'all' ? 'all' : 'selected'
-	);
+	const providerFilterMode = $derived<'selected' | 'all'>(providerParam ? 'selected' : 'all');
 	const selectedProviderIds = $derived(parseProviderParam(providerParam));
 	const sortColumn = $derived(columns.find((column) => column.id === sortColumnId) ?? columns[0]);
 	const queryClauses = $derived(parseQuery(query));
@@ -267,12 +265,18 @@
 	}
 
 	function setAllProviders() {
-		urlState.provider = 'all';
+		urlState.provider = '';
+		resetVirtualScroll();
+	}
+
+	function setFavoriteProviders() {
+		setUrlProviders(defaultProviderIds);
 		resetVirtualScroll();
 	}
 
 	async function openProviderPicker() {
 		providerPickerOpen = true;
+		providerHighlightedIndex = 0;
 		await tick();
 		providerSearchInput?.focus();
 	}
@@ -280,6 +284,51 @@
 	function closeProviderPicker() {
 		providerPickerOpen = false;
 		providerSearch = '';
+		providerHighlightedIndex = 0;
+	}
+
+	function onProviderSearchInput() {
+		providerHighlightedIndex = 0;
+	}
+
+	async function setProviderHighlightedIndex(index: number) {
+		const lastIndex = filteredProviderOptions.length - 1;
+		if (lastIndex < 0) {
+			providerHighlightedIndex = 0;
+			return;
+		}
+
+		providerHighlightedIndex = Math.max(0, Math.min(index, lastIndex));
+		await tick();
+		document
+			.getElementById(`provider-option-${providerHighlightedIndex}`)
+			?.scrollIntoView({ block: 'nearest' });
+	}
+
+	function onProviderPickerKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape') {
+			closeProviderPicker();
+			return;
+		}
+
+		if (event.key === 'ArrowDown') {
+			event.preventDefault();
+			void setProviderHighlightedIndex(providerHighlightedIndex + 1);
+			return;
+		}
+
+		if (event.key === 'ArrowUp') {
+			event.preventDefault();
+			void setProviderHighlightedIndex(providerHighlightedIndex - 1);
+			return;
+		}
+
+		if (event.key === 'Enter') {
+			const provider = filteredProviderOptions[providerHighlightedIndex];
+			if (!provider) return;
+			event.preventDefault();
+			selectProvider(provider.id);
+		}
 	}
 
 	function selectProvider(providerId: string) {
@@ -292,7 +341,13 @@
 	}
 
 	function removeProvider(providerId: string) {
-		setUrlProviders(selectedProviderIds.filter((selected) => selected !== providerId));
+		const remainingProviderIds = selectedProviderIds.filter((selected) => selected !== providerId);
+		if (remainingProviderIds.length === 0) {
+			setAllProviders();
+			return;
+		}
+
+		setUrlProviders(remainingProviderIds);
 		resetVirtualScroll();
 	}
 
@@ -319,12 +374,6 @@
 			onSearchInput();
 		}
 	}
-
-	$effect(() => {
-		if (initializedDefaultProviderUrl || urlState.provider) return;
-		initializedDefaultProviderUrl = true;
-		urlState.provider = defaultProviderIds.join(',');
-	});
 
 	async function copyModelId(modelId: string) {
 		await navigator.clipboard.writeText(modelId);
@@ -387,6 +436,7 @@
 			<button class="provider-chip active" onclick={setAllProviders}
 				>All {allProviderCount} providers</button
 			>
+			<button class="provider-chip" onclick={setFavoriteProviders}>my favorites</button>
 		{:else}
 			{#each selectedProviderIds as providerId (providerId)}
 				{@const provider = providerOptions.find((option) => option.id === providerId)}
@@ -394,6 +444,7 @@
 					{provider?.name ?? providerId} ×
 				</button>
 			{/each}
+			<button class="provider-chip" onclick={setFavoriteProviders}>my favorites</button>
 			<button class="provider-chip" onclick={setAllProviders}>all</button>
 		{/if}
 		<div class="provider-picker">
@@ -410,11 +461,18 @@
 						bind:value={providerSearch}
 						class="provider-picker-search"
 						placeholder="Search providers…"
-						onkeydown={(event) => event.key === 'Escape' && closeProviderPicker()}
+						oninput={onProviderSearchInput}
+						onkeydown={onProviderPickerKeydown}
 					/>
 					<div class="provider-picker-options">
-						{#each filteredProviderOptions as provider (provider.id)}
-							<button class="provider-option" onclick={() => selectProvider(provider.id)}>
+						{#each filteredProviderOptions as provider, index (provider.id)}
+							<button
+								id={`provider-option-${index}`}
+								class="provider-option"
+								class:is-highlighted={index === providerHighlightedIndex}
+								onpointerenter={() => (providerHighlightedIndex = index)}
+								onclick={() => selectProvider(provider.id)}
+							>
 								<span>{provider.name}</span>
 								<small>{provider.id} · {provider.modelCount}</small>
 							</button>
