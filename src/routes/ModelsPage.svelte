@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import GitFork from 'lucide-svelte/icons/git-fork';
+	import GitHubIcon from '$lib/components/GitHubIcon.svelte';
 	import { createSearchParamsSchema, useSearchParams } from 'runed/kit';
 	import type { ModelRow } from '$lib/models/types';
 	import { getModelRows } from './models.remote';
@@ -388,7 +388,7 @@
 				rel="noreferrer"
 				aria-label="Faster Models.dev on GitHub"
 			>
-				<GitFork size={20} strokeWidth={2} />
+				<GitHubIcon size={20} />
 			</a>
 			<a
 				class="source-link"

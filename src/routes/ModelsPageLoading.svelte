@@ -1,5 +1,5 @@
 <script lang="ts">
-	import GitFork from 'lucide-svelte/icons/git-fork';
+	import GitHubIcon from '$lib/components/GitHubIcon.svelte';
 
 	const loadingColumns = [
 		'Provider',
@@ -46,7 +46,7 @@
 				rel="noreferrer"
 				aria-label="Faster Models.dev on GitHub"
 			>
-				<GitFork size={20} strokeWidth={2} />
+				<GitHubIcon size={20} />
 			</a>
 			<a
 				class="source-link"
